@@ -2,14 +2,21 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '3.3.5'
     id 'io.spring.dependency-management' version '1.1.6'
+    id 'maven-publish'
 }
 
-group 'com.example'
+group 'au.mooji'
 version '1.0-SNAPSHOT'
 
 java {
     sourceCompatibility = JavaVersion.VERSION_21
+    withSourcesJar()
 }
+
+def nexusBaseUrl = findProperty('nexusUrl') ?: System.getenv('NEXUS_URL')
+def nexusRepository = findProperty('nexusRepository') ?: System.getenv('NEXUS_REPOSITORY') ?: (version.toString().endsWith('SNAPSHOT') ? 'maven-snapshots' : 'maven-releases')
+def nexusUsername = findProperty('nexusUsername') ?: System.getenv('NEXUS_USERNAME') ?: 'mooji'
+def nexusPassword = findProperty('nexusPassword') ?: System.getenv('NEXUS_PASSWORD')
 
 repositories {
     mavenCentral()
@@ -19,4 +26,42 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation group: 'net.logstash.logback', name: 'logstash-logback-encoder', version: '5.2'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+         }
+    }
+
+    repositories {
+        if (nexusBaseUrl) {
+            maven {
+                def normalizedBaseUrl = nexusBaseUrl.replaceAll('/+$', '')
+                name = 'nexus'
+                url = uri("${normalizedBaseUrl}/repository/${nexusRepository}")
+                allowInsecureProtocol = normalizedBaseUrl.startsWith('http://')
+                credentials {
+                    username = nexusUsername
+                    password = nexusPassword
+                }
+            }
+        }
+    }
+}
+
+tasks.register('verifyNexusConfig') {
+    doLast {
+        if (!nexusBaseUrl) {
+            throw new GradleException('Set nexusUrl (or NEXUS_URL), for example https://nexus.example.com')
+        }
+        if (!nexusPassword) {
+            throw new GradleException('Set nexusPassword (or NEXUS_PASSWORD) before publishing')
+        }
+    }
+}
+
+tasks.named('publish') {
+    dependsOn tasks.named('verifyNexusConfig')
 }

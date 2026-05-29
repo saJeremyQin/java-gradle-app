@@ -5,3 +5,7 @@ build
 out
 build_output.txt
 bin/*
+.env
+.env.*
+!.env.example
+.vscode/*

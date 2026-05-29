@@ -9,6 +9,28 @@
 ##### push image to repo 
 
     docker tag java-app demo-app:java-1.0
+
+##### publish JAR to Nexus using .env
+
+1. Create local env file (already included as `.env`):
+
+    cp .env.example .env
+
+2. Edit `.env` and set your real values:
+
+    NEXUS_URL=https://your-nexus-host
+    NEXUS_REPOSITORY=maven-snapshots
+    NEXUS_USERNAME=mooji
+    NEXUS_PASSWORD=your-token-or-password
+
+3. Load variables into your current shell and publish:
+
+    set -a
+    source .env
+    set +a
+    ./gradlew publish
+
+Note: `.env` is gitignored, so secrets do not get committed.
     
 
 ### Changes
